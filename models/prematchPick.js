@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const prematchSchema = new Schema({
-  homeTeam: String,
-  awayTeam: String,
+  bet: String,
   user: String,
   betType: String,
   description: String,
