@@ -5,7 +5,8 @@
   "main": "bot.js",
   "scripts": {
     "lint": "eslint",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon node bot.js"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,8 @@
   "homepage": "https://github.com/febo99/DiscordBettingBot#readme",
   "dependencies": {
     "discord.js": "^12.2.0",
+    "mongoose": "^5.9.17",
+    "nodemon": "^2.0.4",
     "typescript": "^3.9.3"
   },
   "devDependencies": {
