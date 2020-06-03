@@ -1,16 +1,31 @@
 const Discord = require('discord.js');
 
 const client = new Discord.Client();
+const mongoose = require('mongoose');
 const tokens = require('./tokens');
+// const config = require('./functions/configFunctions');
+// const live = require('./functions/liveFunctions');
+const prematch = require('./functions/prematchFunctions');
 
-client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}`);
+const mongoDB = tokens.database;
+mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.Promise = global.Promise;
+const db = mongoose.connection;
+
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.once('open', () => {
+  console.log('Connection with db is working!');
+  client.on('ready', () => {
+    console.log(`Logged in as ${client.user.tag}`);
+  });
+
+  client.on('message', (msg) => {
+    if (msg.content === `${tokens.prefix}prematch`) {
+      prematch.insertPick(msg);
+    } else if (msg.content === `${tokens.prefix}live`) {
+      msg.reply('Okej');
+    }
+  });
+
+  client.login(tokens.discordToken);
 });
-
-client.on('message', (msg) => {
-  if (msg.content === 'ping') {
-    msg.reply('Pong!');
-  }
-});
-
-client.login(tokens.discordToken);
