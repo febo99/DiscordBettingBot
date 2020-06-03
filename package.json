@@ -1,0 +1,36 @@
+{
+  "name": "discordbettingbot",
+  "version": "1.0.0",
+  "description": "Betting bot for Discord",
+  "main": "bot.js",
+  "scripts": {
+    "lint": "eslint",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/febo99/DiscordBettingBot.git"
+  },
+  "keywords": [
+    "Bot",
+    "Discord",
+    "Betting"
+  ],
+  "author": "Ziga Lah",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/febo99/DiscordBettingBot/issues"
+  },
+  "homepage": "https://github.com/febo99/DiscordBettingBot#readme",
+  "dependencies": {
+    "discord.js": "^12.2.0",
+    "typescript": "^3.9.3"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^3.1.0",
+    "@typescript-eslint/parser": "^3.1.0",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.1.0",
+    "eslint-plugin-import": "^2.20.2"
+  }
+}
