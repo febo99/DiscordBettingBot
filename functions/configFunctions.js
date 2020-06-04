@@ -3,7 +3,6 @@ const Channel = require('../models/channel');
 
 exports.changeChannel = async (type, id) => {
   if (type.toLowerCase() === 'prematch' || type.toLowerCase() === 'live') {
-    console.log(id);
     Channel.findOne({ channelName: type }, (err, ch) => {
       if (err) {
         console.log(`Didn't find a channel with this name! ${err}`);
@@ -24,3 +23,10 @@ exports.changeChannel = async (type, id) => {
     });
   }
 };
+exports.getChannelID = async (type) => Channel.findOne({ channelName: type }, async (err, id) => {
+  if (err) {
+    console.log(`Didn't find a channel with this name! ${err}`);
+    return err;
+  }
+  return (id);
+});
