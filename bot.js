@@ -3,7 +3,7 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 const mongoose = require('mongoose');
 const tokens = require('./tokens');
-// const config = require('./functions/configFunctions');
+const config = require('./functions/configFunctions');
 // const live = require('./functions/liveFunctions');
 const prematch = require('./functions/prematchFunctions');
 
@@ -24,6 +24,13 @@ db.once('open', () => {
       prematch.insertPick(msg);
     } else if (msg.content === `${tokens.prefix}live`) {
       msg.reply('Okej');
+    } else if (msg.content.startsWith(`${tokens.prefix}config`)) {
+      const params = msg.content.split(' ');
+      if (params.length !== 3) {
+        console.log('Too few parameters!');
+        return;
+      }
+      config.changeChannel(params[1], params[2]);
     }
   });
 
