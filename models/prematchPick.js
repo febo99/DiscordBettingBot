@@ -6,6 +6,7 @@ const { Schema } = mongoose;
 const prematchSchema = new Schema({
   bet: String,
   user: String,
+  league: String,
   betType: String,
   description: String,
   odds: Number,

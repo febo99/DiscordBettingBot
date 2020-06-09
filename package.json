@@ -28,6 +28,9 @@
     "mongoose": "^5.9.17",
     "mongoose-sequence": "^5.2.2",
     "nodemon": "^2.0.4",
+    "request": "^2.88.2",
+    "save": "^2.4.0",
+    "scorebing-api": "^1.0.0",
     "typescript": "^3.9.3"
   },
   "devDependencies": {

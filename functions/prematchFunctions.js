@@ -1,8 +1,27 @@
 const Discord = require('discord.js');
+const ScoreBing = require('scorebing-api');
 const PrematchPick = require('../models/prematchPick');
 
-const questions = ['MATCH', 'BET', 'DESCRIPTION', 'ODDS', 'STAKE'];
+const questions = ['MATCH', 'LEAGUE', 'PICK', 'DESCRIPTION', 'ODDS', 'STAKE'];
 const answers = [];
+
+const statusDecider = (nr) => {
+  if (nr === 0) return ':clock:';
+  if (nr === 1) return ':white_check_mark:';
+  if (nr === 2) return ':x:';
+  if (nr === 3) return ':zero:';
+  return 'error';
+};
+
+const getMatches = () => {
+  const score = new ScoreBing();
+
+  score.req(0).then((res) => {
+    const data = res.rs;
+
+    console.log(data);
+  });
+};
 
 const nextSequence = (n) => {
   const ret = PrematchPick.findOneAndUpdate({
@@ -20,11 +39,13 @@ const inputFilter = (nr, input) => {
     case 2: // third input is bet description
       if (input.len >= 1900) return false;
       return true;
-    case 3: // fourth input are odds
+    case 3: // fourth input is league
+      return 3;
+    case 4: // fifth input are odds
       // eslint-disable-next-line no-restricted-globals
       if (isNaN(Number(input))) return false;
       return true;
-    case 4: // fifth input is stake
+    case 5: // sixth input is stake
     // eslint-disable-next-line no-restricted-globals
       if (isNaN(Number(input))) return false;
       return true;
@@ -32,6 +53,10 @@ const inputFilter = (nr, input) => {
       return false;
   }
 };
+exports.getMatchList = async () => {
+  getMatches();
+};
+
 exports.insertPick = async (msg, channel) => {
   let outputString = '';
   const pick = new PrematchPick({
@@ -40,6 +65,7 @@ exports.insertPick = async (msg, channel) => {
     user: 'test',
     betType: 'test',
     description: 'test',
+    league: 'test',
     odds: 2,
     stake: 2,
     status: 0,
@@ -49,7 +75,7 @@ exports.insertPick = async (msg, channel) => {
   let numberOfReplies = 0;
   const reply = await msg.author.send(questions[numberOfReplies]);
   const filter = (m) => m.content.includes('') && m.author.id === msg.author.id;
-  const collector = reply.channel.createMessageCollector(filter, { max: 5, time: 30000 });
+  const collector = reply.channel.createMessageCollector(filter, { max: 6, time: 30000 });
   await collector.on('collect', async (m) => {
     const msgContent = await m.content;
     if (msgContent.toLowerCase() === 'stop') {
@@ -71,22 +97,26 @@ exports.insertPick = async (msg, channel) => {
     }
     numberOfReplies += 1;
   });
-  await collector.on('end', async () => {
-    console.log('END', outputString);
-    const [bet, betType, description, odds, stake] = answers;
+  await collector.on('end', async (collected, reason) => {
+    const collectedArray = collected.array();
+    answers.push(collectedArray[collectedArray.length - 1].content);
+    const [bet, league, betType, description, odds, stake] = answers;
     pick.bet = bet;
+    pick.league = league;
     pick.betType = betType;
     pick.description = description;
     pick.odds = odds;
     pick.stake = stake;
+    pick.user = msg.author.id;
 
     await pick.save((err, ret) => {
       if (err) {
         console.log(`Error with insertion! ${err}`);
         return err;
       }
+      channel.send(`<@${msg.author.id}> | RECORD | League: ${pick.league} | Match: ${pick.bet} | Pick: ${pick.betType} | Odds:
+      ${pick.odds} | Stake: ${pick.stake} | Analysis: ${pick.description} | ${statusDecider(pick.status)} | ID: ${ret.id}`);
       return ret;
     });
   });
-  // channel.send(outputString);
 };
