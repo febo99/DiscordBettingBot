@@ -13,13 +13,53 @@ const statusDecider = (nr) => {
   return 'error';
 };
 
+const getUserRecord = async (id) => {
+  let winnings = 0;
+  let stake = 0;
+  let nrWins = 0;
+  let nrLoss = 0;
+  let nrPush = 0;
+  const userPicks = await PrematchPick.find({ user: id }, async (data, err) => {
+    if (err) return false;
+    return data;
+  });
+  if (!userPicks) {
+    console.log('Something went wrong!');
+  } else {
+    userPicks.forEach((item, index) => {
+      console.log(item);
+      if (item.status === 1) {
+        winnings += (item.odds * item.stake - item.stake);
+        nrWins += 1;
+        stake += item.stake;
+      } else if (item.status === 2) {
+        winnings -= (item.stake);
+        nrLoss += 1;
+        stake += item.stake;
+      } else if (item.status === 3) {
+        nrPush += 1;
+      }
+    });
+    const roi = (winnings / stake) * 100;
+    const record = `Record: ${nrWins}W - ${nrLoss}L - ${nrPush}P, Winnings: ${winnings}, ROI: ${roi}`;
+    console.log(record);
+    return record;
+  }
+};
+
 const getMatches = () => {
   const score = new ScoreBing();
 
   score.req(0).then((res) => {
     const data = res.rs;
 
-    console.log(data);
+    data.forEach((item, index) => {
+      console.log(item);
+      // league.n => small name, league.fn => full name, league.cn => country
+      // host, guest
+      // rtime => start?
+      // status => did it start already?
+    });
   });
 };
 
@@ -58,6 +98,7 @@ exports.getMatchList = async () => {
 };
 
 exports.insertPick = async (msg, channel) => {
+  const record = await getUserRecord('110776620377231360');
   let outputString = '';
   const pick = new PrematchPick({
     _id: await nextSequence('pickid'),
@@ -71,7 +112,7 @@ exports.insertPick = async (msg, channel) => {
     status: 0,
   });
 
-  console.log(msg.content);
+  // console.log(msg.content);
   let numberOfReplies = 0;
   const reply = await msg.author.send(questions[numberOfReplies]);
   const filter = (m) => m.content.includes('') && m.author.id === msg.author.id;
@@ -82,9 +123,10 @@ exports.insertPick = async (msg, channel) => {
       collector.stop('User ended');
       return;
     }
-    console.log(`Collected ${msgContent}`);
+    // console.log(`Collected ${msgContent}`);
     if (!inputFilter(numberOfReplies, msgContent)) {
-      console.log('WRONG TYPE');
+      // console.log('WRONG TYPE');
+      msg.author.send('Your input was wrong! Check the description length and your format of odds/stake!');
       return;
     }
     outputString += msgContent;
@@ -98,6 +140,10 @@ exports.insertPick = async (msg, channel) => {
     numberOfReplies += 1;
   });
   await collector.on('end', async (collected, reason) => {
+    if (reason === 'time') {
+      msg.author.send('You have 30 seconds to write your pick! Try again!');
+      return;
+    }
     const collectedArray = collected.array();
     answers.push(collectedArray[collectedArray.length - 1].content);
     const [bet, league, betType, description, odds, stake] = answers;
@@ -114,7 +160,7 @@ exports.insertPick = async (msg, channel) => {
         console.log(`Error with insertion! ${err}`);
         return err;
       }
-      channel.send(`<@${msg.author.id}> | RECORD | League: ${pick.league} | Match: ${pick.bet} | Pick: ${pick.betType} | Odds:
+      channel.send(`<@${msg.author.id}> | ${record} | League: ${pick.league} | Match: ${pick.bet} | Pick: ${pick.betType} | Odds:
       ${pick.odds} | Stake: ${pick.stake} | Analysis: ${pick.description} | ${statusDecider(pick.status)} | ID: ${ret.id}`);
       return ret;
     });
