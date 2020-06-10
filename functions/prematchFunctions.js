@@ -26,7 +26,7 @@ const getUserRecord = async (id) => {
   if (!userPicks) {
     console.log('Something went wrong!');
   } else {
-    userPicks.forEach((item, index) => {
+    userPicks.forEach((item) => {
       console.log(item);
       if (item.status === 1) {
         winnings += (item.odds * item.stake - item.stake);
@@ -41,8 +41,7 @@ const getUserRecord = async (id) => {
       }
     });
     const roi = (winnings / stake) * 100;
-    const record = `Record: ${nrWins}W - ${nrLoss}L - ${nrPush}P, Winnings: ${winnings}, ROI: ${roi}`;
-    console.log(record);
+    const record = `Record: ${nrWins}W - ${nrLoss}L - ${nrPush}P, Winnings: ${winnings}, ROI: ${roi}%`;
     return record;
   }
 };
@@ -53,7 +52,7 @@ const getMatches = () => {
   score.req(0).then((res) => {
     const data = res.rs;
 
-    data.forEach((item, index) => {
+    data.forEach((item) => {
       console.log(item);
       // league.n => small name, league.fn => full name, league.cn => country
       // host, guest
@@ -99,7 +98,6 @@ exports.getMatchList = async () => {
 
 exports.insertPick = async (msg, channel) => {
   const record = await getUserRecord('110776620377231360');
-  let outputString = '';
   const pick = new PrematchPick({
     _id: await nextSequence('pickid'),
     bet: 'test',
@@ -129,7 +127,6 @@ exports.insertPick = async (msg, channel) => {
       msg.author.send('Your input was wrong! Check the description length and your format of odds/stake!');
       return;
     }
-    outputString += msgContent;
     answers.push(m.content);
     if (numberOfReplies === 0) {
       msg.author.send(questions[numberOfReplies + 1]);
@@ -145,6 +142,7 @@ exports.insertPick = async (msg, channel) => {
       return;
     }
     const collectedArray = collected.array();
+    const newPickMsg = await channel.send('Inserting your pick!');
     answers.push(collectedArray[collectedArray.length - 1].content);
     const [bet, league, betType, description, odds, stake] = answers;
     pick.bet = bet;
@@ -153,14 +151,14 @@ exports.insertPick = async (msg, channel) => {
     pick.description = description;
     pick.odds = odds;
     pick.stake = stake;
+    pick.messageID = newPickMsg.id;
     pick.user = msg.author.id;
-
     await pick.save((err, ret) => {
       if (err) {
         console.log(`Error with insertion! ${err}`);
         return err;
       }
-      channel.send(`<@${msg.author.id}> | ${record} | League: ${pick.league} | Match: ${pick.bet} | Pick: ${pick.betType} | Odds:
+      newPickMsg.edit(`<@${msg.author.id}> | ${record} | League: ${pick.league} | Match: ${pick.bet} | Pick: ${pick.betType} | Odds:
       ${pick.odds} | Stake: ${pick.stake} | Analysis: ${pick.description} | ${statusDecider(pick.status)} | ID: ${ret.id}`);
       return ret;
     });

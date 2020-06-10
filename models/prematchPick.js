@@ -10,6 +10,7 @@ const prematchSchema = new Schema({
   betType: String,
   description: String,
   odds: Number,
+  messageID: String,
   stake: Number,
   status: Number,
   seq: Number,
