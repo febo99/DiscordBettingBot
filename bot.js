@@ -29,6 +29,45 @@ db.once('open', async () => {
     if (msg.content === `${tokens.prefix}prematch`) {
       prematch.insertPick(msg, chs.cache.get(prematchID.channelID));
       console.log('jes');
+    } else if (msg.content.startsWith(`${tokens.prefix}win`)) { // WIN
+      const params = msg.content.split(' ');
+      if (params.length !== 3) {
+        msg.author.send(`${params[0]} command must be in this format: ${params[0]} p/l ID`);
+        return;
+      }
+      if (params[1].toLowerCase() === 'p') {
+        prematch.win(params[2]);
+      } else if (params[1].toLowerCase() === 'l') {
+        console.log('Live picks');
+      } else {
+        msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
+      }
+    } else if (msg.content.startsWith(`${tokens.prefix}lose`)) { // LOSE
+      const params = msg.content.split(' ');
+      if (params.length !== 3) {
+        msg.author.send(`${params[0]} command must be in this format: ${params[0]} p/l ID`);
+        return;
+      }
+      if (params[1].toLowerCase() === 'p') { // PREMATCH LOSE
+        prematch.lose(params[2]);
+      } else if (params[1].toLowerCase() === 'l') { // LIVE LOSE
+        console.log('Live picks');
+      } else {
+        msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
+      }
+    } else if (msg.content.startsWith(`${tokens.prefix}push`)) { // PUSH
+      const params = msg.content.split(' ');
+      if (params.length !== 3) {
+        msg.author.send(`${params[0]} command must be in this format: ${params[0]} p/l ID`);
+        return;
+      }
+      if (params[1].toLowerCase() === 'p') { // PREMATCH PUSH
+        prematch.push(params[2]);
+      } else if (params[1].toLowerCase() === 'l') { // LIVE PUSH
+        console.log('Live picks');
+      } else {
+        msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
+      }
     } else if (msg.content === `${tokens.prefix}live`) {
       msg.reply('Okej');
     } else if (msg.content === `${tokens.prefix}matches`) {

@@ -96,6 +96,18 @@ exports.getMatchList = async () => {
   getMatches();
 };
 
+exports.win = async (pickID) => {
+  console.log('Prematch win');
+};
+
+exports.lose = async (pickID) => {
+  console.log('Prematch lose');
+};
+
+exports.push = async (pickID) => {
+  console.log('Prematch push');
+};
+
 exports.insertPick = async (msg, channel) => {
   const record = await getUserRecord('110776620377231360');
   const pick = new PrematchPick({
