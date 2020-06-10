@@ -5,6 +5,11 @@ const PrematchPick = require('../models/prematchPick');
 const questions = ['MATCH', 'LEAGUE', 'PICK', 'DESCRIPTION', 'ODDS', 'STAKE'];
 const answers = [];
 
+const updateRecords = (userID) => {
+  console.log(userID);
+  return userID;
+};
+
 const statusDecider = (nr) => {
   if (nr === 0) return ':clock:';
   if (nr === 1) return ':white_check_mark:';
@@ -44,6 +49,7 @@ const getUserRecord = async (id) => {
     const record = `Record: ${nrWins}W - ${nrLoss}L - ${nrPush}P, Winnings: ${winnings}, ROI: ${roi}%`;
     return record;
   }
+  return false;
 };
 
 const getMatches = () => {
@@ -96,16 +102,25 @@ exports.getMatchList = async () => {
   getMatches();
 };
 
-exports.win = async (pickID) => {
-  console.log('Prematch win');
+exports.win = async (pickID, userID) => {
+  PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 1 }, async (data, err) => {
+    if (err) console.log(err);
+    else console.log(data);
+  });
 };
 
-exports.lose = async (pickID) => {
-  console.log('Prematch lose');
+exports.lose = async (pickID, userID) => {
+  PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 2 }, async (data, err) => {
+    if (err) console.log(err);
+    else console.log(data);
+  });
 };
 
-exports.push = async (pickID) => {
-  console.log('Prematch push');
+exports.push = async (pickID, userID) => {
+  PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 3 }, async (data, err) => {
+    if (err) console.log(err);
+    else console.log(data);
+  });
 };
 
 exports.insertPick = async (msg, channel) => {

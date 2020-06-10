@@ -35,9 +35,18 @@ db.once('open', async () => {
         msg.author.send(`${params[0]} command must be in this format: ${params[0]} p/l ID`);
         return;
       }
-      if (params[1].toLowerCase() === 'p') {
-        prematch.win(params[2]);
-      } else if (params[1].toLowerCase() === 'l') {
+      if (params[1].toLowerCase() === 'p') { // PREMATCH WIN
+        if (Number.isNaN(Number(params[2]))) {
+          msg.author.send('Last parameter must be a integer!');
+          return;
+        }
+        prematch.win(params[2], msg.author.id);
+      } else if (params[1].toLowerCase() === 'l') { // LIVE WIN
+        console.log(params[2]);
+        if (Number.isNaN(Number(params[2]))) {
+          msg.author.send('Last parameter must be a integer!');
+          return;
+        }
         console.log('Live picks');
       } else {
         msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
@@ -49,8 +58,16 @@ db.once('open', async () => {
         return;
       }
       if (params[1].toLowerCase() === 'p') { // PREMATCH LOSE
-        prematch.lose(params[2]);
+        if (Number.isNaN(Number(params[2]))) {
+          msg.author.send('Last parameter must be a integer!');
+          return;
+        }
+        prematch.lose(params[2], msg.author.id);
       } else if (params[1].toLowerCase() === 'l') { // LIVE LOSE
+        if (Number.isNaN(Number(params[2]))) {
+          msg.author.send('Last parameter must be a integer!');
+          return;
+        }
         console.log('Live picks');
       } else {
         msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
@@ -62,8 +79,16 @@ db.once('open', async () => {
         return;
       }
       if (params[1].toLowerCase() === 'p') { // PREMATCH PUSH
-        prematch.push(params[2]);
+        if (Number.isNaN(Number(params[2]))) {
+          msg.author.send('Last parameter must be a integer!');
+          return;
+        }
+        prematch.push(params[2], msg.author.id);
       } else if (params[1].toLowerCase() === 'l') { // LIVE PUSH
+        if (Number.isNaN(Number(params[2]))) {
+          msg.author.send('Last parameter must be a integer!');
+          return;
+        }
         console.log('Live picks');
       } else {
         msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
