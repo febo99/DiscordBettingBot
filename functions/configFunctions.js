@@ -28,5 +28,5 @@ exports.getChannelID = async (type) => Channel.findOne({ channelName: type }, as
     console.log(`Didn't find a channel with this name! ${err}`);
     return err;
   }
-  return (id);
+  return id;
 });

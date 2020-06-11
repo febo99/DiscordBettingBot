@@ -1,5 +1,6 @@
-const Discord = require('discord.js');
 const ScoreBing = require('scorebing-api');
+const client = require('../bot').bot;
+const config = require('./configFunctions');
 const PrematchPick = require('../models/prematchPick');
 
 const questions = ['MATCH', 'LEAGUE', 'PICK', 'DESCRIPTION', 'ODDS', 'STAKE'];
@@ -8,6 +9,13 @@ const answers = [];
 const updateRecords = (userID) => {
   console.log(userID);
   return userID;
+};
+
+const updateStatus = async (msg, newStatus) => {
+  const channelID = await config.getChannelID('prematch');
+  console.log(channelID.channelID);
+  const channel = await client.channels.fetch(channelID.channelID);
+  console.log(channel);
 };
 
 const statusDecider = (nr) => {
@@ -103,6 +111,7 @@ exports.getMatchList = async () => {
 };
 
 exports.win = async (pickID, userID) => {
+  updateStatus('test', 'test');
   PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 1 }, async (data, err) => {
     if (err) console.log(err);
     else console.log(data);
