@@ -1,22 +1,42 @@
 const ScoreBing = require('scorebing-api');
 const client = require('../bot').bot;
 const config = require('./configFunctions');
+const { msgGetter } = require('./utils');
 const PrematchPick = require('../models/prematchPick');
 
 const questions = ['MATCH', 'LEAGUE', 'PICK', 'DESCRIPTION', 'ODDS', 'STAKE'];
 const answers = [];
 
-const updateRecords = (userID) => {
-  console.log(userID);
-  return userID;
+
+const editMessage = (msg, record) => {
+  const returnMsg = msg;
+  returnMsg[1] = record;
+  return returnMsg.join('|');
 };
 
-const updateStatus = async (msg, newStatus) => {
+const updateRecords = async (userID, record) => {
   const channelID = await config.getChannelID('prematch');
-  console.log(channelID.channelID);
   const channel = await client.channels.fetch(channelID.channelID);
-  console.log(channel);
+  const msgs = await msgGetter(channel);
+  msgs.forEach((item) => {
+    const msgArray = item.content.split('|');
+    if (msgArray.length > 8) {
+      const msg0 = msgArray[0].toString().replace('<@', '').replace('>', '').trim();
+      console.log();
+      if (msg0 === userID.toString()) {
+        const editedMsg = editMessage(msgArray, record);
+        console.log(editMessage);
+        item.edit(editedMsg);
+      }
+    }
+  });
 };
+
+// const updateStatus = async (user, newStatus) => {
+//   console.log('test');
+
+//   // const msgs = await channel.fetchMessages();
+// };
 
 const statusDecider = (nr) => {
   if (nr === 0) return ':clock:';
@@ -40,7 +60,6 @@ const getUserRecord = async (id) => {
     console.log('Something went wrong!');
   } else {
     userPicks.forEach((item) => {
-      console.log(item);
       if (item.status === 1) {
         winnings += (item.odds * item.stake - item.stake);
         nrWins += 1;
@@ -53,7 +72,7 @@ const getUserRecord = async (id) => {
         nrPush += 1;
       }
     });
-    const roi = (winnings / stake) * 100;
+    const roi = ((winnings / stake) * 100).toFixed(2);
     const record = `Record: ${nrWins}W - ${nrLoss}L - ${nrPush}P, Winnings: ${winnings}, ROI: ${roi}%`;
     return record;
   }
@@ -111,11 +130,15 @@ exports.getMatchList = async () => {
 };
 
 exports.win = async (pickID, userID) => {
-  updateStatus('test', 'test');
-  PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 1 }, async (data, err) => {
-    if (err) console.log(err);
-    else console.log(data);
-  });
+  // updateStatus(userID, ':white_check_mark:');
+  await PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 1 },
+    async (data, err) => {
+      if (err) console.log(err);
+      else {
+        // console.log(data);
+      }
+      await updateRecords(userID, await getUserRecord(userID));
+    });
 };
 
 exports.lose = async (pickID, userID) => {
