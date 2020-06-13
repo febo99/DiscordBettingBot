@@ -3,7 +3,7 @@ const AutoIncrementFactory = require('mongoose-sequence')(mongoose);
 const client = require('./bot').bot;
 const tokens = require('./tokens');
 const config = require('./functions/configFunctions');
-// const live = require('./functions/liveFunctions');
+const live = require('./functions/liveFunctions');
 const prematch = require('./functions/prematchFunctions');
 
 const mongoDB = tokens.database;
@@ -27,7 +27,6 @@ db.once('open', async () => {
     const chs = await client.channels;
     if (msg.content === `${tokens.prefix}prematch`) {
       prematch.insertPick(msg, chs.cache.get(prematchID.channelID));
-      console.log('jes');
     } else if (msg.content.startsWith(`${tokens.prefix}win`)) { // WIN
       const params = msg.content.split(' ');
       if (params.length !== 3) {
@@ -93,7 +92,7 @@ db.once('open', async () => {
         msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
       }
     } else if (msg.content === `${tokens.prefix}live`) {
-      msg.reply('Okej');
+      live.insertPick(msg, chs.cache.get(liveID.channelID));
     } else if (msg.content === `${tokens.prefix}matches`) {
       prematch.getMatchList();
     } else if (msg.content.startsWith(`${tokens.prefix}config`)) {

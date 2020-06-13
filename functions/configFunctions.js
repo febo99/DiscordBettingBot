@@ -1,5 +1,8 @@
 /* eslint-disable no-param-reassign */
 const Channel = require('../models/channel');
+/** TO-DO
+ * bot sends a message on error or success
+ */
 
 exports.changeChannel = async (type, id) => {
   if (type.toLowerCase() === 'prematch' || type.toLowerCase() === 'live') {

@@ -7,6 +7,11 @@ const PrematchPick = require('../models/prematchPick');
 const questions = ['MATCH', 'LEAGUE', 'PICK', 'DESCRIPTION', 'ODDS', 'STAKE'];
 let answers = [];
 
+/** TO-DO
+ * update command for updating specific user's record
+ * match picking system(list of countries, matches and picks)
+ * better logging system(Logger or smth)
+ */
 
 const editRecord = (msg, record) => {
   const returnMsg = msg;
@@ -139,6 +144,11 @@ exports.getMatchList = async () => {
 exports.win = async (pickID, userID) => {
   await PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 1 },
     async (data, err) => {
+      if (err) {
+        console.log(err);
+        return;
+      }
+      console.log(data);
       await updateRecords(userID, await getUserRecord(userID));
       await updateStatus(err, ':white_check_mark:');
       // console.log(data);
@@ -147,15 +157,27 @@ exports.win = async (pickID, userID) => {
 
 exports.lose = async (pickID, userID) => {
   PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 2 }, async (data, err) => {
-    if (err) console.log(err);
-    else console.log(data);
+    if (err) {
+      console.log(err);
+      return;
+    }
+    console.log(data);
+    await updateRecords(userID, await getUserRecord(userID));
+    await updateStatus(err, ':x:');
+    // console.log(data);
   });
 };
 
 exports.push = async (pickID, userID) => {
   PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 3 }, async (data, err) => {
-    if (err) console.log(err);
-    else console.log(data);
+    if (err) {
+      console.log(err);
+      return;
+    }
+    console.log(data);
+    await updateRecords(userID, await getUserRecord(userID));
+    await updateStatus(err, ':zero:');
+    // console.log(data);
   });
 };
 
