@@ -5,12 +5,18 @@ const { msgGetter } = require('./utils');
 const PrematchPick = require('../models/prematchPick');
 
 const questions = ['MATCH', 'LEAGUE', 'PICK', 'DESCRIPTION', 'ODDS', 'STAKE'];
-const answers = [];
+let answers = [];
 
 
-const editMessage = (msg, record) => {
+const editRecord = (msg, record) => {
   const returnMsg = msg;
   returnMsg[1] = record;
+  return returnMsg.join('|');
+};
+
+const editStatus = (msg, status) => {
+  const returnMsg = msg;
+  returnMsg[8] = status;
   return returnMsg.join('|');
 };
 
@@ -18,25 +24,26 @@ const updateRecords = async (userID, record) => {
   const channelID = await config.getChannelID('prematch');
   const channel = await client.channels.fetch(channelID.channelID);
   const msgs = await msgGetter(channel);
-  msgs.forEach((item) => {
+  msgs.forEach(async (item) => {
     const msgArray = item.content.split('|');
     if (msgArray.length > 8) {
       const msg0 = msgArray[0].toString().replace('<@', '').replace('>', '').trim();
-      console.log();
       if (msg0 === userID.toString()) {
-        const editedMsg = editMessage(msgArray, record);
-        console.log(editMessage);
-        item.edit(editedMsg);
+        const editedMsg = editRecord(msgArray, record);
+        await item.edit(editedMsg);
       }
     }
   });
 };
 
-// const updateStatus = async (user, newStatus) => {
-//   console.log('test');
-
-//   // const msgs = await channel.fetchMessages();
-// };
+const updateStatus = async (pick, newStatus) => {
+  console.log(pick.messageID);
+  const channelID = await config.getChannelID('prematch');
+  const channel = await client.channels.fetch(channelID.channelID);
+  const msg = await channel.messages.fetch(pick.messageID);
+  const msgArray = msg.content.split('|');
+  msg.edit(await editStatus(msgArray, newStatus));
+};
 
 const statusDecider = (nr) => {
   if (nr === 0) return ':clock:';
@@ -130,14 +137,11 @@ exports.getMatchList = async () => {
 };
 
 exports.win = async (pickID, userID) => {
-  // updateStatus(userID, ':white_check_mark:');
   await PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 1 },
     async (data, err) => {
-      if (err) console.log(err);
-      else {
-        // console.log(data);
-      }
       await updateRecords(userID, await getUserRecord(userID));
+      await updateStatus(err, ':white_check_mark:');
+      // console.log(data);
     });
 };
 
@@ -157,6 +161,7 @@ exports.push = async (pickID, userID) => {
 
 exports.insertPick = async (msg, channel) => {
   const record = await getUserRecord('110776620377231360');
+  answers = [];
   const pick = new PrematchPick({
     _id: await nextSequence('pickid'),
     bet: 'test',
