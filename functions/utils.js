@@ -16,3 +16,14 @@ exports.msgGetter = async (channel, limit = 999999999) => {
   }
   return allMsg;
 };
+exports.editRecord = (msg, record, index) => {
+  const returnMsg = msg;
+  returnMsg[index] = record;
+  return returnMsg.join('|');
+};
+
+exports.editStatus = (msg, status, index) => {
+  const returnMsg = msg;
+  returnMsg[index] = status;
+  return returnMsg.join('|');
+};

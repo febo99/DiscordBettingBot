@@ -1,7 +1,7 @@
 const ScoreBing = require('scorebing-api');
 const client = require('../bot').bot;
 const config = require('./configFunctions');
-const { msgGetter } = require('./utils');
+const { msgGetter, editRecord, editStatus } = require('./utils');
 const PrematchPick = require('../models/prematchPick');
 
 const questions = ['MATCH', 'LEAGUE', 'PICK', 'DESCRIPTION', 'ODDS', 'STAKE'];
@@ -13,17 +13,6 @@ let answers = [];
  * better logging system(Logger or smth)
  */
 
-const editRecord = (msg, record) => {
-  const returnMsg = msg;
-  returnMsg[1] = record;
-  return returnMsg.join('|');
-};
-
-const editStatus = (msg, status) => {
-  const returnMsg = msg;
-  returnMsg[8] = status;
-  return returnMsg.join('|');
-};
 
 const updateRecords = async (userID, record) => {
   const channelID = await config.getChannelID('prematch');
@@ -34,7 +23,7 @@ const updateRecords = async (userID, record) => {
     if (msgArray.length > 8) {
       const msg0 = msgArray[0].toString().replace('<@', '').replace('>', '').trim();
       if (msg0 === userID.toString()) {
-        const editedMsg = editRecord(msgArray, record);
+        const editedMsg = editRecord(msgArray, record, 1);
         await item.edit(editedMsg);
       }
     }
@@ -47,7 +36,7 @@ const updateStatus = async (pick, newStatus) => {
   const channel = await client.channels.fetch(channelID.channelID);
   const msg = await channel.messages.fetch(pick.messageID);
   const msgArray = msg.content.split('|');
-  msg.edit(await editStatus(msgArray, newStatus));
+  msg.edit(await editStatus(msgArray, newStatus, 8));
 };
 
 const statusDecider = (nr) => {

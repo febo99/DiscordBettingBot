@@ -1,7 +1,8 @@
+/* eslint-disable no-restricted-globals */
 const ScoreBing = require('scorebing-api');
 const client = require('../bot').bot;
 const config = require('./configFunctions');
-const { msgGetter } = require('./utils');
+const { msgGetter, editRecord, editStatus } = require('./utils');
 const LivePick = require('../models/livePick');
 
 const questions = ['MATCH', 'PICK', 'ODDS', 'STAKE'];
@@ -13,17 +14,6 @@ let answers = [];
  * better logging system(Logger or smth)
  */
 
-const editRecord = (msg, record) => {
-  const returnMsg = msg;
-  returnMsg[1] = record;
-  return returnMsg.join('|');
-};
-
-const editStatus = (msg, status) => {
-  const returnMsg = msg;
-  returnMsg[8] = status;
-  return returnMsg.join('|');
-};
 
 const updateRecords = async (userID, record) => {
   const channelID = await config.getChannelID('live');
@@ -34,7 +24,7 @@ const updateRecords = async (userID, record) => {
     if (msgArray.length > 8) {
       const msg0 = msgArray[0].toString().replace('<@', '').replace('>', '').trim();
       if (msg0 === userID.toString()) {
-        const editedMsg = editRecord(msgArray, record);
+        const editedMsg = editRecord(msgArray, record, 1);
         await item.edit(editedMsg);
       }
     }
@@ -43,11 +33,11 @@ const updateRecords = async (userID, record) => {
 
 const updateStatus = async (pick, newStatus) => {
   console.log(pick.messageID);
-  const channelID = await config.getChannelID('prematch');
+  const channelID = await config.getChannelID('live');
   const channel = await client.channels.fetch(channelID.channelID);
   const msg = await channel.messages.fetch(pick.messageID);
   const msgArray = msg.content.split('|');
-  msg.edit(await editStatus(msgArray, newStatus));
+  msg.edit(await editStatus(msgArray, newStatus, 7));
 };
 
 const statusDecider = (nr) => {
@@ -116,21 +106,14 @@ const nextSequence = (n) => {
 };
 const inputFilter = (nr, input) => {
   switch (nr) {
-    case 0: // first input is match
+    case 0: // bet
       return true;
-    case 1: // second input is bet type
+    case 1: // pick
       return true;
-    case 2: // third input is bet description
-      if (input.len >= 1900) return false;
-      return true;
-    case 3: // fourth input is league
-      return 3;
-    case 4: // fifth input are odds
-      // eslint-disable-next-line no-restricted-globals
+    case 2: // odds
       if (isNaN(Number(input))) return false;
       return true;
-    case 5: // sixth input is stake
-    // eslint-disable-next-line no-restricted-globals
+    case 3: // stake
       if (isNaN(Number(input))) return false;
       return true;
     default:
