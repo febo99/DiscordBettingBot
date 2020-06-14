@@ -14,7 +14,6 @@ let answers = [];
  * better logging system(Logger or smth)
  */
 
-
 const updatePick = async (userID, record, newStatus, msgID) => {
   const channelID = await config.getChannelID('live');
   const channel = await client.channels.fetch(channelID.channelID);
@@ -177,7 +176,6 @@ exports.insertPick = async (msg, channel) => {
     if (numberOfReplies === 0) {
       msg.author.send(questions[numberOfReplies + 1]);
     } else if (numberOfReplies < questions.length - 1) {
-      console.log(questions[numberOfReplies + 1]);
       msg.author.send(questions[numberOfReplies + 1]);
     }
     numberOfReplies += 1;

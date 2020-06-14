@@ -1,11 +1,26 @@
-const ScoreBing = require('scorebing-api');
+const tiny = require('tiny-json-http');
 const client = require('../bot').bot;
 const config = require('./configFunctions');
 const { msgGetter, editRecord, editStatus } = require('./utils');
 const PrematchPick = require('../models/prematchPick');
+const link = require('../tokens').url;
 
 const questions = ['MATCH', 'LEAGUE', 'PICK', 'DESCRIPTION', 'ODDS', 'STAKE'];
 let answers = [];
+
+class Match {
+  constructor(host, away, country, league, bets) {
+    this.host = host;
+    this.away = away;
+    this.country = country;
+    this.league = league;
+    this.bets = bets;
+  }
+
+  addBet = (b) => {
+    this.bets.push(b);
+  }
+}
 
 /** TO-DO
  * update command for updating specific user's record
@@ -73,19 +88,46 @@ const getUserRecord = async (id) => {
   return false;
 };
 
-const getMatches = () => {
-  const score = new ScoreBing();
 
-  score.req(0).then((res) => {
-    const data = res.rs;
+const getMatches = async () => {
+  const matches = [];
+  const countries = [];
 
-    data.forEach((item) => {
-      console.log(item);
-      // league.n => small name, league.fn => full name, league.cn => country
-      // host, guest
-      // rtime => start?
-      // status => did it start already?
-    });
+  tiny.get({ url: link }, (err, result) => {
+    if (err) {
+      console.log('ruh roh!', err);
+    } else {
+      const data = result.body.rs;
+      data.forEach((item) => {
+        if (item.status === 'NS') { // if match hasn't started yet
+          console.log(item);
+          const match = new Match(item.host, item.guest, item.league.cn, item.league.fn, []);
+          matches.push(match);
+          let found = false;
+          countries.forEach((c) => {
+            if (c.country === item.league.cn) {
+              found = true;
+              if (c.leagues.length === 0){} c.leagues.push(item.league.fn);
+              else {
+                const foundLeauge = false;
+                c.leagues.forEach((l) => {
+                  if (l === item.league.fn) foundLeauge = true;
+                });
+                if (!foundLeauge) c.leagues.push(item.league.fn);
+              }
+            }
+          });
+          if (!found) {
+            countries.push({ country: item.league.cn, leagues: null });
+          }
+        }
+        console.log(countries);
+        // league.n => small name, league.fn => full name, league.cn => country
+        // host, guest
+        // rtime => start?
+        // status => did it start already?
+      });
+    }
   });
 };
 

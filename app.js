@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const AutoIncrementFactory = require('mongoose-sequence')(mongoose);
 const client = require('./bot').bot;
 const tokens = require('./tokens');
 const config = require('./functions/configFunctions');
