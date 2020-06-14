@@ -40,12 +40,11 @@ db.once('open', async () => {
         }
         prematch.win(params[2], msg.author.id);
       } else if (params[1].toLowerCase() === 'l') { // LIVE WIN
-        console.log(params[2]);
         if (Number.isNaN(Number(params[2]))) {
           msg.author.send('Last parameter must be a integer!');
           return;
         }
-        console.log('Live picks');
+        live.win(params[2], msg.author.id);
       } else {
         msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
       }
@@ -66,7 +65,7 @@ db.once('open', async () => {
           msg.author.send('Last parameter must be a integer!');
           return;
         }
-        console.log('Live picks');
+        live.lose(params[2], msg.author.id);
       } else {
         msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
       }
@@ -87,7 +86,7 @@ db.once('open', async () => {
           msg.author.send('Last parameter must be a integer!');
           return;
         }
-        console.log('Live picks');
+        live.push(params[2], msg.author.id);
       } else {
         msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
       }

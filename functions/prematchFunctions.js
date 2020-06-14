@@ -23,6 +23,7 @@ const updateRecords = async (userID, record) => {
     if (msgArray.length > 8) {
       const msg0 = msgArray[0].toString().replace('<@', '').replace('>', '').trim();
       if (msg0 === userID.toString()) {
+        console.log('here');
         const editedMsg = editRecord(msgArray, record, 1);
         await item.edit(editedMsg);
       }
@@ -133,11 +134,6 @@ exports.getMatchList = async () => {
 exports.win = async (pickID, userID) => {
   await PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 1 },
     async (data, err) => {
-      if (err) {
-        console.log(err);
-        return;
-      }
-      console.log(data);
       await updateRecords(userID, await getUserRecord(userID));
       await updateStatus(err, ':white_check_mark:');
       // console.log(data);
@@ -146,11 +142,6 @@ exports.win = async (pickID, userID) => {
 
 exports.lose = async (pickID, userID) => {
   PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 2 }, async (data, err) => {
-    if (err) {
-      console.log(err);
-      return;
-    }
-    console.log(data);
     await updateRecords(userID, await getUserRecord(userID));
     await updateStatus(err, ':x:');
     // console.log(data);
@@ -159,11 +150,6 @@ exports.lose = async (pickID, userID) => {
 
 exports.push = async (pickID, userID) => {
   PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 3 }, async (data, err) => {
-    if (err) {
-      console.log(err);
-      return;
-    }
-    console.log(data);
     await updateRecords(userID, await getUserRecord(userID));
     await updateStatus(err, ':zero:');
     // console.log(data);

@@ -21,7 +21,7 @@ const updateRecords = async (userID, record) => {
   const msgs = await msgGetter(channel);
   msgs.forEach(async (item) => {
     const msgArray = item.content.split('|');
-    if (msgArray.length > 8) {
+    if (msgArray.length > 6) {
       const msg0 = msgArray[0].toString().replace('<@', '').replace('>', '').trim();
       if (msg0 === userID.toString()) {
         const editedMsg = editRecord(msgArray, record, 1);
@@ -37,7 +37,7 @@ const updateStatus = async (pick, newStatus) => {
   const channel = await client.channels.fetch(channelID.channelID);
   const msg = await channel.messages.fetch(pick.messageID);
   const msgArray = msg.content.split('|');
-  msg.edit(await editStatus(msgArray, newStatus, 7));
+  msg.edit(await editStatus(msgArray, newStatus, 6));
 };
 
 const statusDecider = (nr) => {
@@ -125,26 +125,15 @@ exports.getMatchList = async () => {
 };
 
 exports.win = async (pickID, userID) => {
-  await LivePick.findOneAndUpdate({ user: userID, id: pickID }, { status: 1 },
+  await LivePick.findOneAndUpdate({ user: userID, idL: pickID }, { status: 1 },
     async (data, err) => {
-      if (err) {
-        console.log(err);
-        return;
-      }
-      console.log(data);
-      await updateRecords(userID, await getUserRecord(userID));
-      await updateStatus(err, ':white_check_mark:');
-      // console.log(data);
+      await updateRecords(userID, await getUserRecord(userID), 1);
+      await updateStatus(err, ':white_check_mark:'); // err must be used, data returns null
     });
 };
 
 exports.lose = async (pickID, userID) => {
-  LivePick.findOneAndUpdate({ user: userID, id: pickID }, { status: 2 }, async (data, err) => {
-    if (err) {
-      console.log(err);
-      return;
-    }
-    console.log(data);
+  LivePick.findOneAndUpdate({ user: userID, idL: pickID }, { status: 2 }, async (data, err) => {
     await updateRecords(userID, await getUserRecord(userID));
     await updateStatus(err, ':x:');
     // console.log(data);
@@ -152,12 +141,7 @@ exports.lose = async (pickID, userID) => {
 };
 
 exports.push = async (pickID, userID) => {
-  LivePick.findOneAndUpdate({ user: userID, id: pickID }, { status: 3 }, async (data, err) => {
-    if (err) {
-      console.log(err);
-      return;
-    }
-    console.log(data);
+  LivePick.findOneAndUpdate({ user: userID, idL: pickID }, { status: 3 }, async (data, err) => {
     await updateRecords(userID, await getUserRecord(userID));
     await updateStatus(err, ':zero:');
     // console.log(data);
