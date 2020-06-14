@@ -13,8 +13,7 @@ let answers = [];
  * better logging system(Logger or smth)
  */
 
-
-const updateRecords = async (userID, record) => {
+const updatePick = async (userID, record, newStatus, msgID) => {
   const channelID = await config.getChannelID('prematch');
   const channel = await client.channels.fetch(channelID.channelID);
   const msgs = await msgGetter(channel);
@@ -23,21 +22,14 @@ const updateRecords = async (userID, record) => {
     if (msgArray.length > 8) {
       const msg0 = msgArray[0].toString().replace('<@', '').replace('>', '').trim();
       if (msg0 === userID.toString()) {
-        console.log('here');
-        const editedMsg = editRecord(msgArray, record, 1);
+        let editedMsg = editRecord(msgArray, record, 1);
+        if (item.id === msgID) {
+          editedMsg = editStatus(editedMsg.split('|'), newStatus, 8);
+        }
         await item.edit(editedMsg);
       }
     }
   });
-};
-
-const updateStatus = async (pick, newStatus) => {
-  console.log(pick.messageID);
-  const channelID = await config.getChannelID('prematch');
-  const channel = await client.channels.fetch(channelID.channelID);
-  const msg = await channel.messages.fetch(pick.messageID);
-  const msgArray = msg.content.split('|');
-  msg.edit(await editStatus(msgArray, newStatus, 8));
 };
 
 const statusDecider = (nr) => {
@@ -134,24 +126,24 @@ exports.getMatchList = async () => {
 exports.win = async (pickID, userID) => {
   await PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 1 },
     async (data, err) => {
-      await updateRecords(userID, await getUserRecord(userID));
-      await updateStatus(err, ':white_check_mark:');
+      const record = await getUserRecord(userID);
+      await updatePick(userID, record, ':white_check_mark:', err.messageID);
       // console.log(data);
     });
 };
 
 exports.lose = async (pickID, userID) => {
   PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 2 }, async (data, err) => {
-    await updateRecords(userID, await getUserRecord(userID));
-    await updateStatus(err, ':x:');
+    const record = await getUserRecord(userID);
+    await updatePick(userID, record, ':x:', err.messageID);
     // console.log(data);
   });
 };
 
 exports.push = async (pickID, userID) => {
   PrematchPick.findOneAndUpdate({ user: userID, id: pickID }, { status: 3 }, async (data, err) => {
-    await updateRecords(userID, await getUserRecord(userID));
-    await updateStatus(err, ':zero:');
+    const record = await getUserRecord(userID);
+    await updatePick(userID, record, ':zero:', err.messageID);
     // console.log(data);
   });
 };
