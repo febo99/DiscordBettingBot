@@ -127,7 +127,7 @@ const getMatches = async () => {
     // rtime => start?
     // status => did it start already?
   });
-  console.log(countries);
+  // console.log(countries);
   return { matches, countries };
 };
 
@@ -320,27 +320,32 @@ exports.insertPick = async (msg, channel) => {
         const leagueReply = await msg.author.send(leaguesMsg);
         const leagueCollector = leagueReply.channel.createMessageCollector(filter,
           { max: 1, time: 30000 });
-        const userLeaguePick = [];
+        let userLeaguePick = [];
         await leagueCollector.on('collect', async (m3) => {
-          const msgContent = Number(await m3.content);
+          const msgContent = Number(m3.content);
           userLeaguePick.push(msgContent);
           if (Number.isNaN(Number(msgContent))) {
             msg.author.send('This parameter must be a number!');
           } else if (msgContent <= 0 || msgContent > leagues.length) {
             msg.author.send(`League number must be between 1 and ${leagues.length - 1}`);
+            userLeaguePick = -1;
           }
         });
-        await leagueCollector.on('end', async (collected, reason) => {
+        await leagueCollector.on('end', async () => {
           if (reason === 'time') {
             msg.author.send('You have 30 seconds to write your pick! Try again!');
             return;
           }
-          console.log(userLeaguePick);
-          matches.forEach((item, index) => {
-            if (item.country === countries[userPick].country) {
-              console.log('dela', item.country);
+          let userMatches = '';
+          let i = 1;
+          matches.forEach((item) => {
+            if (item.country === countries[userPick].country
+               && item.league === countries[userPick].leagues[userLeaguePick[0] - 1]) {
+              userMatches += `${i}. ${item.host.n} vs ${item.away.n} \n`;
+              i += 1;
             }
           });
+          msg.author.send(userMatches);
         });
       }
     }
