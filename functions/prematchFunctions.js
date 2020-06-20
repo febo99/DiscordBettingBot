@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 const tiny = require('tiny-json-http');
 const client = require('../bot').bot;
 const config = require('./configFunctions');
@@ -27,6 +28,10 @@ class Match {
  * match picking system(list of countries, matches and picks)
  * better logging system(Logger or smth)
  */
+
+const getCountry = async (msg, countries) => {
+  console.log(msg, countries);
+};
 
 const updatePick = async (userID, record, newStatus, msgID) => {
   const channelID = await config.getChannelID('prematch');
@@ -92,43 +97,38 @@ const getUserRecord = async (id) => {
 const getMatches = async () => {
   const matches = [];
   const countries = [];
-
-  tiny.get({ url: link }, (err, result) => {
-    if (err) {
-      console.log('ruh roh!', err);
-    } else {
-      const data = result.body.rs;
-      data.forEach((item) => {
-        if (item.status === 'NS') { // if match hasn't started yet
-          console.log(item);
-          const match = new Match(item.host, item.guest, item.league.cn, item.league.fn, []);
-          matches.push(match);
-          let found = false;
-          countries.forEach((c) => {
-            if (c.country === item.league.cn) {
-              found = true;
-              if (c.leagues.length === 0){} c.leagues.push(item.league.fn);
-              else {
-                const foundLeauge = false;
-                c.leagues.forEach((l) => {
-                  if (l === item.league.fn) foundLeauge = true;
-                });
-                if (!foundLeauge) c.leagues.push(item.league.fn);
-              }
-            }
-          });
-          if (!found) {
-            countries.push({ country: item.league.cn, leagues: null });
+  const result = await tiny.get({ url: link });
+  const data = result.body.rs;
+  data.forEach((item) => {
+    if (item.status === 'NS') { // if match hasn't started yet
+      const match = new Match(item.host, item.guest, item.league.cn, item.league.fn);
+      matches.push(match);
+      let found = false;
+      countries.forEach((c) => {
+        if (c.country === item.league.cn) {
+          found = true;
+          if (c.leagues.length === 0) {
+            c.leagues.push(item.league.fn);
+          } else {
+            let foundLeauge = false;
+            c.leagues.forEach((l) => {
+              if (l === item.league.fn) foundLeauge = true;
+            });
+            if (!foundLeauge) c.leagues.push(item.league.fn);
           }
         }
-        console.log(countries);
-        // league.n => small name, league.fn => full name, league.cn => country
-        // host, guest
-        // rtime => start?
-        // status => did it start already?
       });
+      if (!found) {
+        countries.push({ country: item.league.cn, leagues: [] });
+      }
     }
+    // league.n => small name, league.fn => full name, league.cn => country
+    // host, guest
+    // rtime => start?
+    // status => did it start already?
   });
+  console.log(countries);
+  return { matches, countries };
 };
 
 const nextSequence = (n) => {
@@ -191,71 +191,158 @@ exports.push = async (pickID, userID) => {
 };
 
 exports.insertPick = async (msg, channel) => {
-  const record = await getUserRecord('110776620377231360');
-  answers = [];
-  const pick = new PrematchPick({
-    _id: await nextSequence('pickid'),
-    bet: 'test',
-    user: 'test',
-    betType: 'test',
-    description: 'test',
-    league: 'test',
-    odds: 2,
-    stake: 2,
-    status: 0,
-  });
+  const data = await getMatches();
+  const { matches } = data;
+  let { countries } = data;
+  countries = countries.sort((a, b) => {
+    const aS = a.country.toLowerCase();
+    const bS = b.country.toLowerCase();
+    if (aS === 'spain') return -1;
+    if (aS === 'international') return -1;
+    if (aS === 'italy') return -1;
+    if (aS === 'france') return -1;
+    if (aS === 'germany') return -1;
+    if (aS === 'england') return -1;
 
-  // console.log(msg.content);
-  let numberOfReplies = 0;
-  const reply = await msg.author.send(questions[numberOfReplies]);
-  const filter = (m) => m.content.includes('') && m.author.id === msg.author.id;
-  const collector = reply.channel.createMessageCollector(filter, { max: 6, time: 30000 });
-  await collector.on('collect', async (m) => {
-    const msgContent = await m.content;
-    if (msgContent.toLowerCase() === 'stop') {
-      collector.stop('User ended');
-      return;
-    }
-    // console.log(`Collected ${msgContent}`);
-    if (!inputFilter(numberOfReplies, msgContent)) {
-      // console.log('WRONG TYPE');
-      msg.author.send('Your input was wrong! Check the description length and your format of odds/stake!');
-      return;
-    }
-    answers.push(m.content);
-    if (numberOfReplies === 0) {
-      msg.author.send(questions[numberOfReplies + 1]);
-    } else if (numberOfReplies < questions.length - 1) {
-      console.log(questions[numberOfReplies + 1]);
-      msg.author.send(questions[numberOfReplies + 1]);
-    }
-    numberOfReplies += 1;
+    if (bS === 'spain') return 1;
+    if (bS === 'international') return 1;
+    if (bS === 'italy') return 1;
+    if (bS === 'france') return 1;
+    if (bS === 'germany') return 1;
+    if (bS === 'england') return 1;
+
+    return (aS > bS ? 1 : -1);
   });
-  await collector.on('end', async (collected, reason) => {
-    if (reason === 'time') {
-      msg.author.send('You have 30 seconds to write your pick! Try again!');
-      return;
+  let listOfCountries = 'LIST OF COUNTRIES:\n';
+  let lastIndex = 0;
+  countries.forEach(async (item, index) => {
+    listOfCountries += `${index + 1}. ${item.country}\n`;
+    lastIndex = index + 1;
+  });
+  listOfCountries += `${lastIndex + 1}. Create your own pick\n`;
+  const countryReply = await msg.author.send(listOfCountries);
+  const filter = (m) => m.content.includes('') && m.author.id === msg.author.id;
+
+  const countryCollector = countryReply.channel.createMessageCollector(filter,
+    { max: 1, time: 30000 });
+
+  let defaultPick = [];
+  await countryCollector.on('collect', async (m) => {
+    if (Number.isNaN(Number(m.content))) {
+      msg.author.send('Your selection should be an integer!');
+      return -1;
     }
-    const collectedArray = collected.array();
-    const newPickMsg = await channel.send('Inserting your pick!');
-    answers.push(collectedArray[collectedArray.length - 1].content);
-    const [bet, league, betType, description, odds, stake] = answers;
-    pick.bet = bet;
-    pick.league = league;
-    pick.betType = betType;
-    pick.description = description;
-    pick.odds = odds;
-    pick.stake = stake;
-    pick.messageID = newPickMsg.id;
-    pick.user = msg.author.id;
-    await pick.save((err, ret) => {
-      if (err) {
-        console.log(`Error with insertion! ${err}`);
-        return err;
-      }
-      newPickMsg.edit(`<@${msg.author.id}> | ${record} | League: ${pick.league} | Match: ${pick.bet} | Pick: ${pick.betType} | Odds:
+    defaultPick.push(m.content);
+    if (defaultPick <= 0 || defaultPick[0] > lastIndex + 1) {
+      msg.author.send(`Your selection should be between 1 and ${lastIndex + 1}`);
+      defaultPick = -1;
+    }
+  });
+  await countryCollector.on('end', async (collected, reason) => {
+    if (Number(defaultPick[0]) === countries.length + 1) { // if user selected custom option
+      const record = await getUserRecord('110776620377231360');
+      answers = [];
+      const pick = new PrematchPick({
+        _id: await nextSequence('pickid'),
+        bet: 'test',
+        user: 'test',
+        betType: 'test',
+        description: 'test',
+        league: 'test',
+        odds: 2,
+        stake: 2,
+        status: 0,
+      });
+
+      // console.log(msg.content);
+      let numberOfReplies = 0;
+      const reply = await msg.author.send(questions[numberOfReplies]);
+      const collector = reply.channel.createMessageCollector(filter, { max: 6, time: 30000 });
+      await collector.on('collect', async (m) => {
+        const msgContent = await m.content;
+        if (msgContent.toLowerCase() === 'stop') {
+          collector.stop('User ended');
+          return;
+        }
+        // console.log(`Collected ${msgContent}`);
+        if (!inputFilter(numberOfReplies, msgContent)) {
+          // console.log('WRONG TYPE');
+          msg.author.send('Your input was wrong! Check the description length and your format of odds/stake!');
+          return;
+        }
+        answers.push(m.content);
+        if (numberOfReplies === 0) {
+          msg.author.send(questions[numberOfReplies + 1]);
+        } else if (numberOfReplies < questions.length - 1) {
+          console.log(questions[numberOfReplies + 1]);
+          msg.author.send(questions[numberOfReplies + 1]);
+        }
+        numberOfReplies += 1;
+      });
+      await collector.on('end', async (collected, reason) => {
+        if (reason === 'time') {
+          msg.author.send('You have 30 seconds to write your pick! Try again!');
+          return;
+        }
+        const collectedArray = collected.array();
+        const newPickMsg = await channel.send('Inserting your pick!');
+        answers.push(collectedArray[collectedArray.length - 1].content);
+        const [bet, league, betType, description, odds, stake] = answers;
+        pick.bet = bet;
+        pick.league = league;
+        pick.betType = betType;
+        pick.description = description;
+        pick.odds = odds;
+        pick.stake = stake;
+        pick.messageID = newPickMsg.id;
+        pick.user = msg.author.id;
+        await pick.save((err, ret) => {
+          if (err) {
+            console.log(`Error with insertion! ${err}`);
+            return err;
+          }
+          newPickMsg.edit(`<@${msg.author.id}> | ${record} | League: ${pick.league} | Match: ${pick.bet} | Pick: ${pick.betType} | Odds:
       ${pick.odds} | Stake: ${pick.stake} | Analysis: ${pick.description} | ${statusDecider(pick.status)} | ID: ${ret.id}`);
-      return ret;
-    });
+          return ret;
+        });
+      });
+    } else {
+      msg.author.send('Predefined matches!');
+      const userPick = defaultPick[0] - 1;
+      const { leagues } = countries[userPick];
+      if (leagues.length === 0) {
+        msg.author.send('No leagues were provided by API');
+      } else {
+        let leaguesMsg = '';
+        leagues.forEach((item, index) => {
+          leaguesMsg += `${index + 1}. ${item} \n`;
+        });
+        const leagueReply = await msg.author.send(leaguesMsg);
+        const leagueCollector = leagueReply.channel.createMessageCollector(filter,
+          { max: 1, time: 30000 });
+        const userLeaguePick = [];
+        await leagueCollector.on('collect', async (m3) => {
+          const msgContent = Number(await m3.content);
+          userLeaguePick.push(msgContent);
+          if (Number.isNaN(Number(msgContent))) {
+            msg.author.send('This parameter must be a number!');
+          } else if (msgContent <= 0 || msgContent > leagues.length) {
+            msg.author.send(`League number must be between 1 and ${leagues.length - 1}`);
+          }
+        });
+        await leagueCollector.on('end', async (collected, reason) => {
+          if (reason === 'time') {
+            msg.author.send('You have 30 seconds to write your pick! Try again!');
+            return;
+          }
+          console.log(userLeaguePick);
+          matches.forEach((item, index) => {
+            if (item.country === countries[userPick].country) {
+              console.log('dela', item.country);
+            }
+          });
+        });
+      }
+    }
   });
 };
