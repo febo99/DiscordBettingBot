@@ -1,7 +1,7 @@
 exports.msgGetter = async (channel, limit = 999999999) => {
   const allMsg = [];
   let lastID;
-  while (1) {
+  while (true) {
     const options = { limit: 100 };
     if (lastID) {
       options.before = lastID;
