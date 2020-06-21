@@ -6,8 +6,9 @@ const { msgGetter, editRecord, editStatus } = require('./utils');
 const PrematchPick = require('../models/prematchPick');
 const link = require('../tokens').url;
 
-const questions = ['MATCH', 'LEAGUE', 'PICK', 'DESCRIPTION', 'ODDS', 'STAKE'];
-let answers = [];
+const questions = ['LEAGUE', 'MATCH', 'PICK', 'DESCRIPTION', 'ODDS', 'STAKE'];
+let filteredMatches = '';
+const answers = [];
 
 class Match {
   constructor(host, away, country, league, bets) {
@@ -93,6 +94,42 @@ const getUserRecord = async (id) => {
   return false;
 };
 
+const sortCountries = (countries) => {
+  const sorted = countries.sort((a, b) => {
+    const aS = a.country.toLowerCase();
+    const bS = b.country.toLowerCase();
+    if (aS === 'spain') return -1;
+    if (aS === 'international') return -1;
+    if (aS === 'italy') return -1;
+    if (aS === 'france') return -1;
+    if (aS === 'germany') return -1;
+    if (aS === 'england') return -1;
+
+    if (bS === 'spain') return 1;
+    if (bS === 'international') return 1;
+    if (bS === 'italy') return 1;
+    if (bS === 'france') return 1;
+    if (bS === 'germany') return 1;
+    if (bS === 'england') return 1;
+
+    return (aS > bS ? 1 : -1);
+  });
+  return sorted;
+};
+
+const getCountryLeagues = (country) => {
+  let output = 'LEAGUES: \n';
+  (country.leagues).forEach((item, index) => {
+    output += `${index + 1}. ${item} \n`;
+  });
+  return output;
+};
+
+const oddsStakeFilter = (input) => {
+  const value = input.replace(',', '.');
+  if (Number.isNaN(Number(value))) return false;
+  return true;
+};
 
 const getMatches = async () => {
   const matches = [];
@@ -102,7 +139,6 @@ const getMatches = async () => {
   let foundLeauge = false;
   data.forEach((item) => {
     if (item.status === 'NS') { // if match hasn't started yet
-      console.log(item.league.fn);
       const match = new Match(item.host, item.guest, item.league.cn, item.league.fn);
       matches.push(match);
       let found = false;
@@ -110,7 +146,6 @@ const getMatches = async () => {
         if (c.country === item.league.cn) { // find a proper country
           found = true;
           if (c.leagues.length === 0) { // if leagues array is empty
-            console.log(`First item in leagues ${item.league.fn}`);
             c.leagues.push(item.league.fn);
           } else {
             foundLeauge = false;
@@ -122,7 +157,6 @@ const getMatches = async () => {
               return 1;
             });
             if (!foundLeauge) {
-              console.log(`New league ${item.league.fn}`);
               c.leagues.push(item.league.fn);
             }
           }
@@ -206,227 +240,116 @@ exports.insertPick = async (msg, channel) => {
   const data = await getMatches();
   const { matches } = data;
   let { countries } = data;
-  countries = countries.sort((a, b) => {
-    const aS = a.country.toLowerCase();
-    const bS = b.country.toLowerCase();
-    if (aS === 'spain') return -1;
-    if (aS === 'international') return -1;
-    if (aS === 'italy') return -1;
-    if (aS === 'france') return -1;
-    if (aS === 'germany') return -1;
-    if (aS === 'england') return -1;
-
-    if (bS === 'spain') return 1;
-    if (bS === 'international') return 1;
-    if (bS === 'italy') return 1;
-    if (bS === 'france') return 1;
-    if (bS === 'germany') return 1;
-    if (bS === 'england') return 1;
-
-    return (aS > bS ? 1 : -1);
-  });
+  countries = sortCountries(countries);
   let listOfCountries = 'LIST OF COUNTRIES:\n';
   let lastIndex = 0;
-  countries.forEach(async (item, index) => {
+  let inputCounter = 0;
+  let customInput = false;
+  let switchInput = false;
+  let userInput;
+  userInput = [];
+  // TO-DO: Error handling if string is longer than 2000 chars
+  countries.forEach(async (item, index) => { // concatenate all countries to one string
     listOfCountries += `${index + 1}. ${item.country}\n`;
     lastIndex = index + 1;
   });
+
   listOfCountries += `${lastIndex + 1}. Create your own pick\n`;
-  const countryReply = await msg.author.send(listOfCountries);
+  const reply = await msg.author.send(listOfCountries);
   const filter = (m) => m.content.includes('') && m.author.id === msg.author.id;
 
-  const countryCollector = countryReply.channel.createMessageCollector(filter,
-    { max: 1, time: 30000 });
+  const answersCollector = reply.channel.createMessageCollector(filter,
+    { max: 7, time: 150000 });
 
-  let defaultPick = [];
-  await countryCollector.on('collect', async (m) => {
-    if (Number.isNaN(Number(m.content))) {
-      msg.author.send('Your selection should be an integer!');
+  answersCollector.on('collect', async (m) => {
+    if (customInput) {
+      if (inputCounter === 2 && switchInput) {
+        const select = Number(m.content);
+        if (select <= 0 || select > filteredMatches.length + 1) {
+          msg.author.send(`Please select an item from a list(Between 1 and ${filteredMatches.length + 1})`);
+          answersCollector.stop();
+          return -1;
+        }
+        const selectedMatch = filteredMatches[select - 1];
+        userInput.push(`${selectedMatch.host.n} - ${selectedMatch.away.n}`);
+      } else if (inputCounter === 5 || inputCounter === 6) {
+        if (oddsStakeFilter(m.content))userInput.push(m.content);
+        else {
+          msg.author.send('Odds/stake must be a number!');
+          answersCollector.stop();
+          return -1;
+        }
+      }
+      if (inputCounter < questions.length)msg.author.send(`${questions[inputCounter]}`);
+    } else if (inputCounter === 0 && !customInput) {
+      const userSelection = Number(m.content);
+      if (Number.isNaN(userSelection)) {
+        msg.author.send(`Please select an item from a list(Between 1 and ${countries.length + 1})`);
+        answersCollector.stop();
+        return -1;
+      }
+      if (userSelection <= 0 || userSelection > countries.length + 1) {
+        msg.author.send(`Please select an item from a list(Between 1 and ${countries.length + 1})`);
+        answersCollector.stop();
+      }
+      if (userSelection === countries.length + 1) {
+        customInput = true;
+        userInput.push(userSelection);
+        msg.author.send(`${questions[inputCounter]}`);
+        inputCounter += 1;
+        return -1;
+      }
+      const leagues = getCountryLeagues(countries[userSelection - 1]);
+      userInput.push(userSelection);
+      msg.author.send(leagues);
+    } else if (inputCounter === 1 && !customInput) {
+      const userSelection = Number(m.content);
+      const league = countries[userInput[0] - 1].leagues[userSelection - 1];
+      userInput.push(league);
+      filteredMatches = matches.filter((match) => match.league === league);
+      let matchlist = 'MATCHES: \n';
+      let counter = 1;
+      filteredMatches.forEach((item) => {
+        matchlist += `${counter}. ${item.host.n} - ${item.away.n} \n`;
+        counter += 1;
+      });
+      msg.author.send(matchlist);
+      customInput = true;
+      switchInput = true;
+    }
+    inputCounter += 1;
+  });
+
+  answersCollector.on('end', async (collected, reason) => {
+    if (reason === 'time') {
+      msg.author.send('You ran out of time! Please try again!');
       return -1;
     }
-    defaultPick.push(m.content);
-    if (defaultPick <= 0 || defaultPick[0] > lastIndex + 1) {
-      msg.author.send(`Your selection should be between 1 and ${lastIndex + 1}`);
-      defaultPick = -1;
+    if (reason === 'user') {
+      return -1;
     }
-  });
-  await countryCollector.on('end', async (collected, reason) => {
-    if (Number(defaultPick[0]) === countries.length + 1) { // if user selected custom option
-      const record = await getUserRecord('110776620377231360');
-      answers = [];
-      const pick = new PrematchPick({
-        _id: await nextSequence('pickid'),
-        bet: 'test',
-        user: 'test',
-        betType: 'test',
-        description: 'test',
-        league: 'test',
-        odds: 2,
-        stake: 2,
-        status: 0,
-      });
-
-      // console.log(msg.content);
-      let numberOfReplies = 0;
-      const reply = await msg.author.send(questions[numberOfReplies]);
-      const collector = reply.channel.createMessageCollector(filter, { max: 6, time: 30000 });
-      await collector.on('collect', async (m) => {
-        const msgContent = await m.content;
-        if (msgContent.toLowerCase() === 'stop') {
-          collector.stop('User ended');
-          return;
-        }
-        // console.log(`Collected ${msgContent}`);
-        if (!inputFilter(numberOfReplies, msgContent)) {
-          // console.log('WRONG TYPE');
-          msg.author.send('Your input was wrong! Check the description length and your format of odds/stake!');
-          return;
-        }
-        answers.push(m.content);
-        if (numberOfReplies === 0) {
-          msg.author.send(questions[numberOfReplies + 1]);
-        } else if (numberOfReplies < questions.length - 1) {
-          console.log(questions[numberOfReplies + 1]);
-          msg.author.send(questions[numberOfReplies + 1]);
-        }
-        numberOfReplies += 1;
-      });
-      await collector.on('end', async (collected, reason) => {
-        if (reason === 'time') {
-          msg.author.send('You have 30 seconds to write your pick! Try again!');
-          return;
-        }
-        const collectedArray = collected.array();
-        const newPickMsg = await channel.send('Inserting your pick!');
-        answers.push(collectedArray[collectedArray.length - 1].content);
-        const [bet, league, betType, description, odds, stake] = answers;
-        pick.bet = bet;
-        pick.league = league;
-        pick.betType = betType;
-        pick.description = description;
-        pick.odds = odds;
-        pick.stake = stake;
-        pick.messageID = newPickMsg.id;
-        pick.user = msg.author.id;
-        await pick.save((err, ret) => {
-          if (err) {
-            console.log(`Error with insertion! ${err}`);
-            return err;
-          }
-          newPickMsg.edit(`<@${msg.author.id}> | ${record} | League: ${pick.league} | Match: ${pick.bet} | Pick: ${pick.betType} | Odds:
-      ${pick.odds} | Stake: ${pick.stake} | Analysis: ${pick.description} | ${statusDecider(pick.status)} | ID: ${ret.id}`);
-          return ret;
-        });
-      });
-    } else {
-      msg.author.send('Predefined matches!');
-      const userPick = defaultPick[0] - 1;
-      const { leagues } = countries[userPick];
-      if (leagues.length === 0) {
-        msg.author.send('No leagues were provided by API');
-      } else {
-        let leaguesMsg = '';
-        leagues.forEach((item, index) => {
-          leaguesMsg += `${index + 1}. ${item} \n`;
-        });
-        const leagueReply = await msg.author.send(leaguesMsg);
-        const leagueCollector = leagueReply.channel.createMessageCollector(filter,
-          { max: 1, time: 30000 });
-        let userLeaguePick = [];
-        await leagueCollector.on('collect', async (m3) => {
-          const msgContent = Number(m3.content);
-          userLeaguePick.push(msgContent);
-          if (Number.isNaN(Number(msgContent))) {
-            msg.author.send('This parameter must be a number!');
-          } else if (msgContent <= 0 || msgContent > leagues.length) {
-            msg.author.send(`League number must be between 1 and ${leagues.length - 1}`);
-            userLeaguePick = -1;
-          }
-        });
-        await leagueCollector.on('end', async () => {
-          if (reason === 'time') {
-            msg.author.send('You have 30 seconds to write your pick! Try again!');
-            return;
-          }
-          let userMatches = '';
-          let i = 1;
-          matches.forEach((item) => {
-            if (item.country === countries[userPick].country
-               && item.league === countries[userPick].leagues[userLeaguePick[0] - 1]) {
-              userMatches += `${i}. ${item.host.n} vs ${item.away.n} \n`;
-              i += 1;
-            }
-          });
-          const matchReply = await msg.author.send(userMatches);
-          let matchPick = [];
-          const matchCollector = matchReply.channel.createMessageCollector(filter,
-            { max: 1, time: 30000 });
-          await matchCollector.on('collect', async (m4) => {
-            const msgContent = Number(m4.content);
-            matchPick.push(msgContent);
-            if (Number.isNaN(Number(msgContent))) {
-              msg.author.send('This parameter must be a number!');
-            } else if (msgContent <= 0 || msgContent > i) {
-              msg.author.send(`League number must be between 1 and ${i}`);
-              matchPick = -1;
-            }
-          });
-          await matchCollector.on('end', async (reason) => {
-            if (reason === 'time') {
-              msg.author.send('You have 30 seconds to write your pick! Try again!');
-            }
-            matches.forEach(async (match) => {
-              let k = 0;
-              let selectedMatch;
-              if (match.league === countries[userPick].leagues[userLeaguePick[0] - 1]
-                && k === matchPick[0] - 1) {
-                selectedMatch = match;
-                const additionalInfo = await msg.author.send(`You selected: ${match.host.n} - ${match.away.n}`);
-                const infoCollector = additionalInfo.channel.createMessageCollector(filter,
-                  { max: 4, time: 30000 });
-                await msg.author.send('PICK');
-                const qs = ['ANALYSIS', 'STAKE', 'ODDS'];
-                let c = 0;
-                let info = [];
-                info = [];
-                await infoCollector.on('collect', async (m4) => {
-                  info.push(m4.content);
-                  if (c < qs.length) {
-                    msg.author.send(qs[c]);
-                    c += 1;
-                  }
-                });
-                await infoCollector.on('end', async () => {
-                  const pick = new PrematchPick({
-                    _id: await nextSequence('pickid'),
-                    bet: `${selectedMatch.host.n} - ${selectedMatch.away.n}`,
-                    user: msg.author.id,
-                    betType: info[0],
-                    description: info[1],
-                    league: selectedMatch.league,
-                    odds: info[2],
-                    stake: info[3],
-                    status: 0,
-                  });
-                  const newPickMsg = await channel.send('Inserting your pick!');
-                  const nRecord = await getUserRecord(msg.author.id);
-                  await pick.save((err, ret) => {
-                    if (err) {
-                      console.log(`Error with insertion! ${err}`);
-                      return err;
-                    }
-                    newPickMsg.edit(`<@${msg.author.id}> | ${nRecord} | League: ${pick.league} | Match: ${pick.bet} | Pick: ${pick.betType} | Odds:
-                ${pick.odds} | Stake: ${pick.stake} | Analysis: ${pick.description} | ${statusDecider(pick.status)} | ID: ${ret.id}`);
-                    return ret;
-                  });
-                });
-              } else {
-                k += 1;
-              }
-            });
-          });
-        });
+    const newPickMsg = await channel.send('Inserting your pick!');
+    const pick = new PrematchPick({
+      _id: await nextSequence('pickid'),
+      bet: userInput[2],
+      user: msg.author.id,
+      betType: userInput[3],
+      description: userInput[4],
+      messageID: newPickMsg.id,
+      league: userInput[1],
+      odds: userInput[5],
+      stake: userInput[6],
+      status: 0,
+    });
+    const record = await getUserRecord(msg.author.id);
+    await pick.save((err, ret) => {
+      if (err) {
+        console.log(`Error with insertion! ${err}`);
+        return err;
       }
-    }
+      newPickMsg.edit(`<@${msg.author.id}> | ${record} | League: ${pick.league} | Match: ${pick.bet} | Pick: ${pick.betType} | Odds:
+  ${pick.odds} | Stake: ${pick.stake} | Analysis: ${pick.description} | ${statusDecider(pick.status)} | ID: ${ret.id}`);
+      return ret;
+    });
   });
 };
