@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 /* eslint-disable no-nested-ternary */
 const tiny = require('tiny-json-http');
 const client = require('../bot').bot;
@@ -8,7 +9,6 @@ const link = require('../tokens').url;
 
 const questions = ['LEAGUE', 'MATCH', 'PICK', 'DESCRIPTION', 'ODDS', 'STAKE'];
 let filteredMatches = '';
-const answers = [];
 
 class Match {
   constructor(host, away, country, league, bets) {
@@ -29,10 +29,6 @@ class Match {
  * match picking system(list of countries, matches and picks)
  * better logging system(Logger or smth)
  */
-
-const getCountry = async (msg, countries) => {
-  console.log(msg, countries);
-};
 
 const updatePick = async (userID, record, newStatus, msgID) => {
   const channelID = await config.getChannelID('prematch');
@@ -184,29 +180,7 @@ const nextSequence = (n) => {
   });
   return ret.seq;
 };
-const inputFilter = (nr, input) => {
-  switch (nr) {
-    case 0: // first input is match
-      return true;
-    case 1: // second input is bet type
-      return true;
-    case 2: // third input is bet description
-      if (input.len >= 1900) return false;
-      return true;
-    case 3: // fourth input is league
-      return 3;
-    case 4: // fifth input are odds
-      // eslint-disable-next-line no-restricted-globals
-      if (isNaN(Number(input))) return false;
-      return true;
-    case 5: // sixth input is stake
-    // eslint-disable-next-line no-restricted-globals
-      if (isNaN(Number(input))) return false;
-      return true;
-    default:
-      return false;
-  }
-};
+
 exports.getMatchList = async () => {
   getMatches();
 };
@@ -273,12 +247,15 @@ exports.insertPick = async (msg, channel) => {
         const selectedMatch = filteredMatches[select - 1];
         userInput.push(`${selectedMatch.host.n} - ${selectedMatch.away.n}`);
       } else if (inputCounter === 5 || inputCounter === 6) {
-        if (oddsStakeFilter(m.content))userInput.push(m.content);
-        else {
+        if (oddsStakeFilter(m.content)) {
+          userInput.push(m.content);
+        } else {
           msg.author.send('Odds/stake must be a number!');
           answersCollector.stop();
           return -1;
         }
+      } else {
+        userInput.push(m.content);
       }
       if (inputCounter < questions.length)msg.author.send(`${questions[inputCounter]}`);
     } else if (inputCounter === 0 && !customInput) {
@@ -318,6 +295,7 @@ exports.insertPick = async (msg, channel) => {
       switchInput = true;
     }
     inputCounter += 1;
+    return 1;
   });
 
   answersCollector.on('end', async (collected, reason) => {
@@ -329,6 +307,7 @@ exports.insertPick = async (msg, channel) => {
       return -1;
     }
     const newPickMsg = await channel.send('Inserting your pick!');
+    console.log(userInput);
     const pick = new PrematchPick({
       _id: await nextSequence('pickid'),
       bet: userInput[2],
@@ -345,11 +324,13 @@ exports.insertPick = async (msg, channel) => {
     await pick.save((err, ret) => {
       if (err) {
         console.log(`Error with insertion! ${err}`);
+        msg.author.send('Your pick wasn\'t inserted correctly! Contact admin!');
         return err;
       }
       newPickMsg.edit(`<@${msg.author.id}> | ${record} | League: ${pick.league} | Match: ${pick.bet} | Pick: ${pick.betType} | Odds:
   ${pick.odds} | Stake: ${pick.stake} | Analysis: ${pick.description} | ${statusDecider(pick.status)} | ID: ${ret.id}`);
       return ret;
     });
+    return 1;
   });
 };

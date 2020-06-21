@@ -99,7 +99,7 @@ db.once('open', async () => {
         console.log('Too few parameters!');
         return;
       }
-      await config.changeChannel(params[1], params[2]);
+      await config.changeChannel(params[1], params[2], msg);
       // first parameter is prematch/live, second is the id of channel that you want to use
 
       if (params[1].toLowerCase() === 'live') liveID = config.getChannelID(params[1]);
