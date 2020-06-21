@@ -1,0 +1,17 @@
+f: trend
+    hrf: handicap
+    hdx: goals
+    hcb: corner
+
+f_ld: handicap result(array, each element is different bookie)
+    hrf: pick
+    hrfsp: home odds
+    grfsp: away odds
+hdx: goals pick
+hdxsp: goals over odds
+gdxsp: goals under odds
+
+cb: corners(array)
+    hcb: pick
+    hcbsp: over odds
+    gcbsp: under odds
