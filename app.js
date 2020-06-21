@@ -4,6 +4,7 @@ const tokens = require('./tokens');
 const config = require('./functions/configFunctions');
 const live = require('./functions/liveFunctions');
 const prematch = require('./functions/prematchFunctions');
+const { logger } = require('./logger');
 
 const mongoDB = tokens.database;
 mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -16,9 +17,9 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 
 db.once('open', async () => {
-  console.log('Connection with db is working!');
+  logger.info('Connection with db is working!');
   client.on('ready', () => {
-    console.log(`Logged in as ${client.user.tag}`);
+    logger.info(`Logged in as ${client.user.tag}`);
   });
   client.on('message', async (msg) => {
     let liveID = await config.getChannelID('live');
@@ -30,64 +31,77 @@ db.once('open', async () => {
       const params = msg.content.split(' ');
       if (params.length !== 3) {
         msg.author.send(`${params[0]} command must be in this format: ${params[0]} p/l ID`);
+        logger.error(`${msg.author.id} error: WRONG FORMAT of win command!`);
         return;
       }
       if (params[1].toLowerCase() === 'p') { // PREMATCH WIN
         if (Number.isNaN(Number(params[2]))) {
           msg.author.send('Last parameter must be a integer!');
+          logger.error(`${msg.author.id} error: WRONG PARAMETER TYPE of win command!`);
           return;
         }
         prematch.win(params[2], msg.author.id);
       } else if (params[1].toLowerCase() === 'l') { // LIVE WIN
         if (Number.isNaN(Number(params[2]))) {
           msg.author.send('Last parameter must be a integer!');
+          logger.error(`${msg.author.id} error: WRONG PARAMETER TYPE of win command!`);
           return;
         }
         live.win(params[2], msg.author.id);
       } else {
         msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
+        logger.error(`${msg.author.id} error: WRONG SECOND PARAMETER of win command!`);
       }
     } else if (msg.content.startsWith(`${tokens.prefix}lose`)) { // LOSE
       const params = msg.content.split(' ');
       if (params.length !== 3) {
         msg.author.send(`${params[0]} command must be in this format: ${params[0]} p/l ID`);
+        logger.error(`${msg.author.id} error: WRONG FORMAT of lose command!`);
+
         return;
       }
       if (params[1].toLowerCase() === 'p') { // PREMATCH LOSE
         if (Number.isNaN(Number(params[2]))) {
           msg.author.send('Last parameter must be a integer!');
+          logger.error(`${msg.author.id} error: WRONG PARAMETER TYPE of lose command!`);
           return;
         }
         prematch.lose(params[2], msg.author.id);
       } else if (params[1].toLowerCase() === 'l') { // LIVE LOSE
         if (Number.isNaN(Number(params[2]))) {
           msg.author.send('Last parameter must be a integer!');
+          logger.error(`${msg.author.id} error: WRONG PARAMETER TYPE of lose command!`);
           return;
         }
         live.lose(params[2], msg.author.id);
       } else {
         msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
+        logger.error(`${msg.author.id} error: WRONG SECOND PARAMETER of lose command!`);
       }
     } else if (msg.content.startsWith(`${tokens.prefix}push`)) { // PUSH
       const params = msg.content.split(' ');
       if (params.length !== 3) {
         msg.author.send(`${params[0]} command must be in this format: ${params[0]} p/l ID`);
+        logger.error(`${msg.author.id} error: WRONG FORMAT of push command!`);
         return;
       }
       if (params[1].toLowerCase() === 'p') { // PREMATCH PUSH
         if (Number.isNaN(Number(params[2]))) {
           msg.author.send('Last parameter must be a integer!');
+          logger.error(`${msg.author.id} error: WRONG PARAMETER TYPE of push command!`);
           return;
         }
         prematch.push(params[2], msg.author.id);
       } else if (params[1].toLowerCase() === 'l') { // LIVE PUSH
         if (Number.isNaN(Number(params[2]))) {
           msg.author.send('Last parameter must be a integer!');
+          logger.error(`${msg.author.id} error: WRONG PARAMETER TYPE of push command!`);
           return;
         }
         live.push(params[2], msg.author.id);
       } else {
         msg.author.send(`${params[0]} command must have either p or l as a second parameter!`);
+        logger.error(`${msg.author.id} error: WRONG SECOND PARAMETER of push command!`);
       }
     } else if (msg.content === `${tokens.prefix}live`) {
       live.insertPick(msg, chs.cache.get(liveID.channelID));
